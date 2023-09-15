@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 function sleep(duration) {
   return new Promise(r => {
@@ -13,12 +13,23 @@ const POSTS = [
 
 function App() {
 
+  const queryClient = useQueryClient()
+
   const postsQuery = useQuery({
-    queryKey: 'posts',
+    queryKey: ['posts'],
     queryFn: async () => {
       return sleep(1000).then(() => {
         return [...POSTS]
       })
+    }
+  })
+
+  const newPostMutation = useMutation({
+    mutationFn: (newPost) => sleep(1000).then(() => {
+      POSTS.push(newPost)
+    }),
+    onSuccess: () => {
+      queryClient.invalidateQueries(['posts'])
     }
   })
 
@@ -31,6 +42,12 @@ function App() {
       {postsQuery.data.map(({ id, title }) => {
         return (<div key={id}>{title}</div>)
       })}
+      <button
+        disabled={newPostMutation.isLoading}
+        onClick={() => newPostMutation.mutate({ id: postsQuery.data.length + 1, title: 'New Post' })}
+      >
+        Add New Post
+      </button>
     </div>
   );
 }
